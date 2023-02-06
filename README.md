@@ -1,6 +1,6 @@
 # Query PDF with LLM
 
-This repo host fastAPI app for querying PDF file to look for information using natural langugage.
+This repo host fastAPI app for querying PDF file to look for information using natural language.
 
 The query flow was implemented as follow:
 1. Read text from pdf file
@@ -16,12 +16,12 @@ The query flow was implemented as follow:
 
 1. Clone this repo
     ```
-    git clone https://github.com/haizadtarik/llm-pdf-query.git
+    git clone https://github.com/haizadtarik/queryPDF.git
     ```
 
 2. Install dependencies
     ```
-    cd llm-pdf-query
+    cd queryPDF
     python -m pip install -r requirements.txt
     ```
 
