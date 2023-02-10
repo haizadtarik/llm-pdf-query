@@ -2,7 +2,9 @@ pypdf>=3.2
 transformers>=4.25
 sentence-transformers>=2.2
 qdrant-client>=0.11
-fastapi>=0.88.0
-uvicorn[standard]>=0.20.0
+fastapi>=0.88
+uvicorn[standard]>=0.20
 python-multipart>=0.0.5
+tiktoken>=0.2
+openai>=0.26
 

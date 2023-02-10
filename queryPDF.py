@@ -3,13 +3,33 @@ from sentence_transformers import SentenceTransformer
 from qdrant_client import QdrantClient
 from qdrant_client.models import VectorParams, Distance
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+import openai
+import tiktoken
+import numpy as np
+
+class openAIencoder():
+    def __init__(self, api_key, model="text-embedding-ada-002"):
+        openai.api_key = api_key
+        self.embedding_model = model
+    def encode(self, texts: list):
+        embedding_vectors = []
+        for text in texts:
+            result = openai.Embedding.create(
+            model=self.embedding_model,
+            input=text
+            )
+            embedding_vectors.append(result["data"][0]["embedding"])
+        return np.array(embedding_vectors)
 
 class uploadPDF:
-    def __init__(self, uploaded_file, password=None, encoder='sentence-transformers/gtr-t5-base'):
-        self.model = SentenceTransformer(encoder)
+    def __init__(self, uploaded_file, open_api_key=None, password=None, st_encoder='sentence-transformers/gtr-t5-base'):
+        if open_api_key is not None:
+            self.model = openAIencoder(open_api_key)
+        else:
+            self.model = SentenceTransformer(st_encoder)
         self.qdrant_client = QdrantClient(host='localhost', port=6333)
         self.embeddings, self.chunks_dict = self.parse2doc(uploaded_file,password)
-        self.create_collection()
+        self.create_collection(self.embeddings.shape[1])
         self.upload_vectors(self.embeddings,self.chunks_dict)
 
     def parse2doc(self, uploaded_file, password=None):
@@ -36,7 +56,7 @@ class uploadPDF:
         return embeddings, chunks_dict
 
 
-    def create_collection(self,distance_metric=Distance.COSINE):
+    def create_collection(self,size,distance_metric=Distance.COSINE):
         """
         This function is used to create a collection in Qdrant vector database
         
@@ -45,7 +65,7 @@ class uploadPDF:
         """
         self.qdrant_client.recreate_collection(
             collection_name=self.collection_name,
-            vectors_config=VectorParams(size=self.model.get_sentence_embedding_dimension(), distance=distance_metric),
+            vectors_config=VectorParams(size=size, distance=distance_metric),
         )
 
     def upload_vectors(self,vectors,payload):
@@ -65,13 +85,15 @@ class uploadPDF:
         )
 
 class queryVDB:
-    def __init__(self, collection_name, encoder='sentence-transformers/gtr-t5-base', llm='google/flan-t5-base'):
+    def __init__(self, collection_name, open_api_key=None, encoder='sentence-transformers/gtr-t5-base', llm='google/flan-t5-base'):
         self.collection_name = collection_name
-        self.encoder = SentenceTransformer(encoder)
+        if open_api_key is not None:
+            self.encoder = openAIencoder(open_api_key)
+        else:
+            self.encoder = SentenceTransformer(encoder)
         self.tokenizer = AutoTokenizer.from_pretrained(llm)
         self.llm = AutoModelForSeq2SeqLM.from_pretrained(llm)
-        self.qdrant_client = QdrantClient(host='localhost', port=6333)
-        
+        self.qdrant_client = QdrantClient(host='localhost', port=6333)      
 
     def search_vectors(self,query_vector,limit=3):  
         """
@@ -124,10 +146,33 @@ class queryVDB:
         outputs = self.llm.generate(**inputs, max_new_tokens=512)
         result =  self.tokenizer.batch_decode(outputs, skip_special_tokens=True)
         return result
+    
+    def gpt_reply(self, query_text, model="text-davinci-003"):
+        """
+        This function is used to search pdf file for information
+
+        Parameters:
+        query_text (str): The text to be searched
+
+        Returns:
+        results (dict): The matched chunk of text with query text
+        """
+        if type(self.encoder) is not openAIencoder:
+            raise Exception('Please provide openAI API key to use this function')
+        document = self.search_text(query_text)
+        prompt = f"Answer the question as truthfully as possible, and if you're unsure of the answer, say 'Sorry, I don't know' Context: {document}.Q: {query_text} A:"
+        result = openai.Completion.create(
+                prompt=prompt,
+                temperature=0,
+                max_tokens=300,
+                model=model
+            )["choices"][0]["text"].strip(" \n")
+        return result
 
 if __name__ == '__main__':
-    uploadPDF('eCCRIS_FAQ.pdf')
-    query = queryVDB('eCCRIS_FAQ')
-    results = query.llm_reply("How to apply for eCCRIS?")
+    uploadPDF('undp.pdf')
+    query = queryVDB('undp')
+    results = query.gpt_reply("How to access UNDP’s eRecruit system")
     print(results)
+    
 

@@ -34,8 +34,19 @@ The query flow was implemented as follow:
     ```
     docker run -p 6333:6333 -v $(pwd)/qdrant_storage:/qdrant/storage qdrant/qdrant
     ```
+    
+    ---
+    **NOTE**
+
+    To use OpenAI embeddings or GPT create `.env` and put your API key there
+    ```
+    OPENAI_KEY=<OPEN_API_KEY>
+    ```
+    ---
 
 5. Bring up fastAPI server
     ```
     python server.py
     ```
+
+
