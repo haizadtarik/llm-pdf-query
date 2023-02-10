@@ -1,6 +1,6 @@
 import uvicorn
 from fastapi import FastAPI, File, UploadFile
-from queryPDF import queryVDB, uploadPDF
+from queryfile import queryVDB, uploadPDF
 from dotenv import load_dotenv
 import os
 
