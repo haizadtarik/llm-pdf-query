@@ -203,11 +203,5 @@ class queryVDB:
                 model=model
             )["choices"][0]["text"].strip(" \n")
         return result
-
-if __name__ == '__main__':
-    uploadPDF('undp.pdf')
-    query = queryVDB('undp',llm='google/flan-t5-xxl')
-    results = query.gpt_reply("How to access UNDP’s eRecruit system")
-    print(results)
     
 
